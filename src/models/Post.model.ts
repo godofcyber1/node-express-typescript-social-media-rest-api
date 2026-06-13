@@ -30,6 +30,12 @@ export const PostSchema: Schema<Post> = new Schema(
       default: 'all',
       trim: true,
     },
+    visibility: {
+      type: String,
+      enum: ['public', 'private'],
+      default: 'public',
+      trim: true,
+    },
   },
 
   {

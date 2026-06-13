@@ -144,6 +144,132 @@ export const getPostService = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+export const getDraftPostService = async (req: AuthenticatedRequestBody<TPost>, res: Response, next: NextFunction) => {
+  const { userId, postId } = req.params;
+
+  if (!isValidMongooseObjectId(userId) || !isValidMongooseObjectId(postId)) {
+    return res.status(422).send(
+      response<null>({
+        data: null,
+        success: false,
+        error: true,
+        message: `Invalid request`,
+        status: 422,
+      })
+    );
+  }
+
+  if (req.user?._id?.toString() !== userId) {
+    return res.status(403).send(
+      response<null>({
+        data: null,
+        success: false,
+        error: true,
+        message: `Auth Failed (Unauthorized)`,
+        status: 403,
+      })
+    );
+  }
+
+  try {
+    const doc = await Post.findOne({ _id: postId, author: userId, visibility: 'private' });
+
+    if (!doc) {
+      return res.status(400).send(
+        response<null>({
+          data: null,
+          success: false,
+          error: true,
+          message: `Failed to find draft post by given ID ${postId}`,
+          status: 400,
+        })
+      );
+    }
+
+    return res.status(200).send(
+      response<{ post: TPost }>({
+        success: true,
+        error: false,
+        message: `Successfully Found draft post by given id: ${postId}`,
+        status: 200,
+        data: { post: doc },
+      })
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateDraftPostService = async (
+  req: AuthenticatedRequestBody<TPost>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { userId, postId } = req.params;
+  const { title, content, category, visibility } = req.body;
+
+  if (!isValidMongooseObjectId(userId) || !isValidMongooseObjectId(postId)) {
+    return res.status(422).send(
+      response<null>({
+        data: null,
+        success: false,
+        error: true,
+        message: `Invalid request`,
+        status: 422,
+      })
+    );
+  }
+
+  if (req.user?._id?.toString() !== userId) {
+    return res.status(403).send(
+      response<null>({
+        data: null,
+        success: false,
+        error: true,
+        message: `Auth Failed (Unauthorized)`,
+        status: 403,
+      })
+    );
+  }
+
+  try {
+    const toBeUpdatedPost = await Post.findOne({ _id: postId, author: userId });
+
+    if (!toBeUpdatedPost) {
+      return res.status(400).send(
+        response<null>({
+          data: null,
+          success: false,
+          error: true,
+          message: `Failed to update draft post by given ID ${postId}`,
+          status: 400,
+        })
+      );
+    }
+
+    toBeUpdatedPost.title = title || toBeUpdatedPost.title;
+    toBeUpdatedPost.content = content || toBeUpdatedPost.content;
+    toBeUpdatedPost.category = category || toBeUpdatedPost.category;
+    toBeUpdatedPost.visibility = visibility || toBeUpdatedPost.visibility;
+
+    const updatedPost = await toBeUpdatedPost.save();
+
+    return res.status(200).send(
+      response<{ post: TPost }>({
+        data: {
+          post: updatedPost,
+        },
+        success: true,
+        error: false,
+        message: `Successfully updated draft post by ID ${postId}`,
+        status: 200,
+      })
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const deletePostService = async (req: Request, res: Response, next: NextFunction) => {
   if (!isValidMongooseObjectId(req.params.postId) || !req.params.postId) {
     return res.status(422).send(
@@ -240,4 +366,11 @@ export const editPostService = async (req: AuthenticatedRequestBody<TPost>, res:
   }
 };
 
-export default { getPostsService, getPostService, createPostService, editPostService };
+export default {
+  getPostsService,
+  getPostService,
+  getDraftPostService,
+  updateDraftPostService,
+  createPostService,
+  editPostService,
+};
