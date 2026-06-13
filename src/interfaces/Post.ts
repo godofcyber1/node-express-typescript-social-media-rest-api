@@ -8,6 +8,7 @@ export interface Post {
   content: string;
   postImage: string;
   author: mongoose.Schema.Types.ObjectId;
+  visibility?: 'public' | 'private';
   _id: string;
   createdAt?: string;
   updatedAt?: string;
